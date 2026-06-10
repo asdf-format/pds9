@@ -310,6 +310,7 @@ class AsdfEvents:
         tk.Label(root, text="asdf filename").grid(row=0)        
         self.entry = tk.Entry(root)
         self.entry.grid(row=0, column=1)
+        self.entry.bind('<Return>', self.load_entry_field)
         tk.Button(root, text="quit", command=root.quit).grid(row=1, column=0,
                                                               sticky=tk.W, pady=4)
         tk.Button(root, text="load", command=self.load_entry_field).grid(row=1, column=1,
@@ -317,7 +318,8 @@ class AsdfEvents:
         tk.Button(root, text="Help", command=self.show_filename_help).grid(row=1, column=2,
                                                                            sticky=tk.W, pady=4)
 
-    def load_entry_field(self):
+    
+    def load_entry_field(self, event=None):
 
         filepath = self.entry.get()
         # print("filename: %s" % filepath)
