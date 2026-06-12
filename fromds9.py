@@ -5,6 +5,7 @@ import pathlib
 import numpy as np
 import tkinter as tk
 from tkinter import messagebox
+import tkinter.filedialog as filedialog
 import asdf
 from asdf.tagged import TaggedDict, TaggedList
 from asdf.yamlutil import tagged_tree_to_custom_tree
@@ -52,6 +53,13 @@ Because ds9 uses square brackets as part of its mechanism
 to load array data, the temporary file created replaces
 the square brackets with parentheses when displayed in
 its info section for the filename.
+
+Once the file text entry box has a value, and it 
+corresponds to an existing file, the "Browse for 
+Image" button can be used to list all arrays of dimension
+two or greater in the file, selecting one and pushing
+the load button will append the ASDF object path to the
+file/path specification and load the image. 
 """
 
 def create_ds9_tmp_dir():
@@ -247,12 +255,11 @@ def parse_filename(filename):
         if len(apath) == 0:
             finished = True
     fd = open('parse.txt','w')
-    print(fn, file=fd)
-    print(alist, file=fd)
     fd.close()
     return fn, alist
 
 def get_asdf_image(asdfpath):
+    print(asdfpath)
     retval = parse_filename(asdfpath)
     if retval is not None:
         fn, alist = retval
@@ -299,38 +306,176 @@ def extract_asdf_array(tree, apath, ctx):
     arr = tagged_tree_to_custom_tree(node, ctx)._make_array()
     return arr
 
+def callsearch(pathlist, nodeitem, index, ctx, path, min_nelements):
+    spath = path.copy()
+    spath.append(index)
+    sresult = search_tree(nodeitem[index], ctx, spath, min_nelements)
+    if sresult is not None:
+        if isinstance(sresult, dict):
+            pathlist.append(sresult)
+        else:
+            pathlist += sresult
 
+def search_tree(tree, ctx, path=None, min_nelements=1000):
+    """
+    Walk through the tree recursively to find all images and their associated paths
+    """
+    if path is None:
+        path = []
+    pathlist = []
+    if isinstance(tree, TaggedDict):
+        if tree._tag.startswith('tag:stsci.edu:asdf/core/ndarray-'):
+            # Convert and check for size
+            lazyim = tagged_tree_to_custom_tree(tree, ctx)
+            if len(lazyim.shape) < 2:
+                return None
+            nelements = np.prod(lazyim.shape)
+            if nelements < min_nelements:
+                return None
+            if lazyim.dtype is complex:
+                return None
+            iminfo = (lazyim.dtype, lazyim.shape)
+            return {'path': path, 'iminfo': iminfo}
+        else:
+            for key in tree.data.keys():
+                callsearch(pathlist, tree.data, key, ctx, path, min_nelements)
+    elif isinstance(tree, TaggedList):
+        for i, item in enumerate(tree.data):
+            callsearch(pathlist, tree.data, i, ctx, path, min_nelements)
+    elif isinstance(tree, dict):
+        for key in tree.keys():
+            callsearch(pathlist, tree, key, ctx, path, min_nelements)
+    elif isinstance(tree, list):
+        for i, item in enumerate(tree):
+            callsearch(pathlist, tree, i, ctx, path, min_nelements)
+    if pathlist:
+        return pathlist
+    else:
+        return None
+
+def process_path_lists(pathlists):
+    """
+    Generate a simple list of text paths useful for ds9 and a corresponding
+    list of image info as single strings.
+    """
+    paths =[]
+    shapes = []
+    for item in pathlists:
+        path, imshape = convert_path_list(item)
+        paths.append(path)
+        shapes.append(imshape)
+    return paths, shapes
+
+def convert_path_list(pathlist):
+    """
+    Generate a text path useful for ds9 and a corresponding image description 
+    string.
+    """
+    plist = pathlist['path']
+    iminfo = pathlist['iminfo']
+    path = ''
+    for item in plist:
+        if type(item) == type(1):
+            path += f"[{item}]"
+        else:
+            if not path or path[-1] == ']':
+                path += item
+            else:
+                path += f".{item}"
+    imshape = str(iminfo[1])
+    return path, imshape
 
 class AsdfEvents:
 
     def __init__(self, root):
         self.root = root
+        self.imbrow = None
+        self.imlist = None
+        self.impaths = None
+        self.imshapes = None
+        self.af = None
         self.ds9 = ds9samp.start()
         self.ds9.send_array = asdf_send_array.__get__(self.ds9, ds9samp.Connection)
-        tk.Label(root, text="asdf filename").grid(row=0)        
+        tk.Label(root, text="asdf filename").grid(row=1)        
         self.entry = tk.Entry(root)
-        self.entry.grid(row=0, column=1)
+        self.entry.grid(row=1, column=1)
         self.entry.bind('<Return>', self.load_entry_field)
-        tk.Button(root, text="quit", command=root.quit).grid(row=1, column=0,
+        tk.Button(root, text="quit", command=root.quit).grid(row=2, column=0,
                                                               sticky=tk.W, pady=4)
-        tk.Button(root, text="load", command=self.load_entry_field).grid(row=1, column=1,
+        tk.Button(root, text="load", command=self.load_entry_field).grid(row=2, column=1,
                                                                            sticky=tk.W, pady=4)
-        tk.Button(root, text="Help", command=self.show_filename_help).grid(row=1, column=2,
+        tk.Button(root, text="Help", command=self.show_filename_help).grid(row=2, column=2,
                                                                            sticky=tk.W, pady=4)
-
+        tk.Button(root, text="Browse for ASDF file", command=self.browse_filename).grid(row=0, column=0,
+                                                                           sticky=tk.W, pady=4)
+        self.browse_image_button = tk.Button(root, text="Browse for Image", command=self.browse_image)
+        self.browse_image_button.grid(row=0, column=1, sticky=tk.W, pady=4)
+        self.browse_image_button.config(state=tk.DISABLED)
     
     def load_entry_field(self, event=None):
 
         filepath = self.entry.get()
-        # print("filename: %s" % filepath)
-        im = get_asdf_image(filepath)
-        if im is None:
+        print(filepath)
+        if filepath:
+            self.browse_image_button.config(state=tk.NORMAL)
+        else:
+            self.browse_image_button.config(state=tk.DISABLED)
             return
-
+        if ':' in filepath:
+            # print("filename: %s" % filepath)
+            im = get_asdf_image(filepath)
+            if im is None:
+                return
+        else:
+            return
         self.ds9.send_array(im, filepath)
 
     def show_filename_help(self):
         messagebox.showinfo(title="Filename/Image Path Info", message=FILEPATH_DOC)
+
+    def browse_filename(self):
+        filename = filedialog.askopenfilename()
+        self.entry.delete(0, tk.END)
+        self.entry.insert(0, filename)
+        self.browse_image_button.config(state=tk.NORMAL)
+
+    def browse_image(self):
+        filename = self.entry.get()
+        # Discard the image path if it exists
+        filename = filename.split(':')[0]
+        with asdf.open(filename, _force_raw_types=True) as af:
+            self.af = af
+            pathlists = search_tree(af.tree, af)
+            imbrow = tk.Toplevel(self.root)
+            imbrow.wm_title("ASDF Image Browser")
+            imlist = tk.Listbox(imbrow, width=60, height=20)
+            imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
+            button_load = tk.Button(imbrow, text="Load Image", command=self.load_selected_image)
+            button_load.pack()
+            self.imbrow = imbrow
+            self.imlist = imlist
+            impaths, imshapes = process_path_lists(pathlists)
+            self.impaths = impaths
+            self.imshapes = imshapes
+            imdescs = ['  '.join((impath, str(imshape))) for impath, imshape in zip(impaths, imshapes)]
+            for imdesc in imdescs:
+                imlist.insert(tk.END, imdesc)
+            
+    def load_selected_image(self):
+        impathindex = self.imlist.curselection()[0]
+        impath = self.impaths[impathindex]
+        # Construct new file/imagepath string
+        filepath = self.entry.get()
+        if ':' in filepath:
+            filepath = filepath.split(':')[0]
+        self.entry.delete(0, tk.END)
+        self.entry.insert(0, f"{filepath}:{impath}")
+        print(self.entry.get())
+        self.imbrow.destroy()
+        self.load_entry_field()
+        
+
+
 
 def bring_to_front(window):
     window.attributes('-topmost', True)
