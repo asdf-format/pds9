@@ -483,10 +483,15 @@ def bring_to_front(window):
     window.attributes('-topmost', False)
     window.focus_force()
 
-root = tk.Tk()
-root.title("ASDF File Access")
-root.lift()
-bring_to_front(root)
-asdfevents = AsdfEvents(root)
-root.mainloop()
+
+def main():
+    root = tk.Tk()
+    root.title("ASDF File Access")
+    root.lift()
+    bring_to_front(root)
+    asdfevents = AsdfEvents(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    sys.exit(main())
 
