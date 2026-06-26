@@ -1,0 +1,35 @@
+[project]
+name = "pds9"
+dynamic = ["version"]
+dependencies = [
+  "numpy",
+  "lz4",
+  "asdf",
+  "astropy",
+  "ds9samp"
+]
+requires-python = ">=3.11"
+authors = [
+  {name = "Perry Greenfield", email = "perry@stsci.edu"},
+]
+description = "asdf plugin for ds9"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+keywords = ["asdf", "ds9"]
+classifiers = [
+  "Programming Language :: Python"
+]
+
+[project.urls]
+Homepage = "https://github.com/asdf-format/pds9"
+Documentation = "https://pds9.readthedocs.org"
+Repository = "https://github.com/asdf-format/pds9.git"
+"Bug Tracker" = "https://github.com/asdf-format/pds9/issues"
+
+[project.scripts]
+pds9-config = "pds9:cli.main"
+
+[build-system]
+requires = ["setuptools >= 77.0.3", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
