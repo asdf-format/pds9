@@ -13,6 +13,6 @@ def main():
     inifile = topdir / "ds9.ini"
     python_bin = Path(sys.prefix) / "bin" / "python3"
 
-    if args.ini:
+    if args.print:
         print(f"set pds9_python {python_bin}")
         print(f"source {inifile}")
