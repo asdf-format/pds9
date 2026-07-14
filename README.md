@@ -1,5 +1,6 @@
-# pds9
+
 Python implementation for ds9 support for ASDF files
+====================================================
 
 Requirements:
 
@@ -10,45 +11,37 @@ Requirements:
 * asdf
 
 Installation instructions
+=========================
 
-This very early version requires more manual steps than will eventually be required (hopfully just a simple pip install 
-aside from the usual ds9 install)
+This set of instructions will create an alternate version of ds9 that supports asdf.
 
-There are two options for installing the modifications to allow
-ds9 to load ASDF images.
+# Install pds9::
 
-Since this is an early version I recommend creating an alternate
-ds9 command so as not to interfere with the behavior of the 
-standard ds9 installation. This is fairly easy to do.
+  pip install git+https://github.com/asdf-format/pds9
 
-Instructions for alternate ds9 executable
+# Generate the startup file's contents::
 
-First you must located where the ds9 executable is located. On MacOS, that is likely /Applications/SAOImageDS9.app/Contents/MacOS 
-The executable is named ds9. Make a symbolic link to the executable 
-with:
+  pds9-config -p > ~/.ads9.ini
 
-ln -s /Applications/SAOImageDS9.app/Contents/MacOS/ds9
-      /Applications/SAOImageDS9.app/Contents/MacOS/ads9
+# Create a link to ds9 named ads9::
 
-It is useful to put the link in the same directory. You can create an alias to that new executable or include that path in PATH.
+  cd /path/to/ds9/
+  ln -s ds9 ads9
 
-Then copy ds9.ini to the home directory as .ads9.ini (the name of
-the root part of the ini file must be the same as that of
-the executable with a period prepended).
+# Run ads9::
 
-Also copy fromds9.py to the same directory.
+/path/to/ds9/ads9
 
-If you don't care about changing the behavior of the original
-ds9. There is no need to create the link, and instead copy
-ds9.ini to the home directory as .ds9.ini
+
+For convenience, you may add that path to the environmental
+PATH (if not already added) or create an alias.
 
 When you start ads9 (or ds9 if no link is used), you will
 see a new item on the file button row at the end with the
-label "asdf" (Due to some odd behavior, one does not see
-the top button row until the ds9 window is clicked somewhere
-in the window; this oddity will be fixed in the future)r.
+label "asdf".
 
-Loading ASDF files.
+Loading ASDF files
+==================
 
 The initial user interface is quite basic. By clicking the asdf
 button, that will open a new, persistent dialog window, that
