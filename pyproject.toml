@@ -6,7 +6,8 @@ dependencies = [
   "lz4",
   "asdf",
   "astropy",
-  "ds9samp"
+  "ds9samp",
+  "gwcs"
 ]
 requires-python = ">=3.11"
 authors = [

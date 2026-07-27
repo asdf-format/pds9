@@ -2,6 +2,7 @@ import sys
 import os
 import os.path
 import pathlib
+import time
 import numpy as np
 import tkinter as tk
 from tkinter import messagebox
@@ -122,11 +123,6 @@ def asdf_send_array(
         home directory.
 
         """
-        dbf = open('xxx.txt', 'w')
-        print(filename, file=dbf)
-        print(DS9TMP, file=dbf)
-        dbf.close()
-
         # Map between NumPy and DS9 storage fields.
         #
         # Hack in support for bool values
@@ -254,12 +250,10 @@ def parse_filename(filename):
             return
         if len(apath) == 0:
             finished = True
-    fd = open('parse.txt','w')
-    fd.close()
     return fn, alist
 
 def get_asdf_image(asdfpath):
-    print(asdfpath)
+
     retval = parse_filename(asdfpath)
     if retval is not None:
         fn, alist = retval
@@ -273,7 +267,12 @@ def get_asdf_image(asdfpath):
         return None
     # Extract the referenced array
     node = af.tree
-    return extract_asdf_array(node, alist, af)
+    im = extract_asdf_array(node, alist, af)
+    if 'roman' in af.tree:
+        wcs = extract_gwcs(af.tree, af)
+    else:
+        wcs = None
+    return im, wcs
 
 def extract_asdf_array(tree, apath, ctx):
     """
@@ -305,6 +304,42 @@ def extract_asdf_array(tree, apath, ctx):
         return
     arr = tagged_tree_to_custom_tree(node, ctx)._make_array()
     return arr
+
+def fixwcs(hdr):
+    """
+    Put the GWCS generated SIP header in a form that ds9 will accept.
+
+    Assumes the argument is an astropy.io.fit Header instance
+    """
+    delete_list = ['naxis', 'naxis1', 'naxis2', 'sipmxerr']
+    for keyword in delete_list:
+        del hdr[keyword]
+    hdrstr = str(hdr)
+    # Must strip the END statement out of this
+    endstr = 'END' + 77 * ' '
+    blankcard = 80 * ' '
+    hdrstr = hdrstr.replace(endstr, blankcard)
+    return hdrstr
+
+def extract_gwcs(tree, ctx):
+# def extract_gwcs(tree, ctx):
+    """
+    This currently only works for roman data
+    """
+    import sys
+    node = tree
+    apath = (('a', 'roman'), ('a', 'meta'), ('a', 'wcs'))
+    for ptype, value in apath:
+        if ptype == 'a':
+            try:
+                node = node[value]
+            except KeyError:
+                messagebox.showerror("ASDF Path Error", f"Specified ADSF path component '{value}' not in file")
+                return
+    gwcs = node
+    gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
+    fitswcs = gwcs.to_fits_sip(degree=5, max_inv_pix_error=None, npoints=10)
+    return fixwcs(fitswcs)
 
 def callsearch(pathlist, nodeitem, index, ctx, path, min_nelements):
     spath = path.copy()
@@ -413,25 +448,28 @@ class AsdfEvents:
         self.browse_image_button.config(state=tk.DISABLED)
     
     def load_entry_field(self, event=None):
-
         filepath = self.entry.get()
-        print(filepath)
         if filepath:
             self.browse_image_button.config(state=tk.NORMAL)
         else:
             self.browse_image_button.config(state=tk.DISABLED)
             return
         if ':' in filepath:
-            # print("filename: %s" % filepath)
-            im = get_asdf_image(filepath)
+            im,  fitswcs = get_asdf_image(filepath)
             if im is None:
                 return
         else:
             return
         self.ds9.send_array(im, filepath)
+        wcsfn = str((DS9TMP / "wcs.fits").resolve())
+        with open(wcsfn, "wb") as fwcs:
+            fwcs.write(bytes(fitswcs, 'utf-8'))
+        self.ds9.set(f"wcs load {wcsfn}")
+
 
     def show_filename_help(self):
         messagebox.showinfo(title="Filename/Image Path Info", message=FILEPATH_DOC)
+        
 
     def browse_filename(self):
         filename = filedialog.askopenfilename()
@@ -470,7 +508,6 @@ class AsdfEvents:
             filepath = filepath.split(':')[0]
         self.entry.delete(0, tk.END)
         self.entry.insert(0, f"{filepath}:{impath}")
-        print(self.entry.get())
         self.imbrow.destroy()
         self.load_entry_field()
         
