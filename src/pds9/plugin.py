@@ -1,3 +1,4 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
 import os.path
 import pathlib
@@ -8,13 +9,20 @@ from tkinter import filedialog, messagebox
 import asdf
 import ds9samp
 import numpy as np
+import psutil
 from asdf.tagged import TaggedDict, TaggedList
 from asdf.yamlutil import tagged_tree_to_custom_tree
 
 DS9TMP = None
+# The following is needed by the installation routine which uses argv
+# for a different purpose
+try:
+    value = sys.argv[1]
+    DS9PID = int(value)
+except ValueError:
+    DS9PID = value
 
 FILEPATH_DOC = """
-
 How to specify ASDF images for DS9
 
 The first part of specifying an ADSF image is to specify
@@ -86,7 +94,7 @@ def create_ds9_tmpfile_name(asdf_full_path):
         create_ds9_tmp_dir()
     # Delete any existing files.
     for filepath in DS9TMP.glob("*"):
-        if filepath.is_file():
+        if filepath.is_file() and filepath.parts[-1] != "ds9cmd":
             filepath.unlink()
     # Remove any directories in the supplied asdf_full_path
     dummy, asdf_truncated_full_path = os.path.split(asdf_full_path)
@@ -476,6 +484,46 @@ class AsdfEvents:
         self.imbrow.destroy()
         self.load_entry_field()
 
+    def poll_for_ds9_updates(self):
+        """
+        Continually check to see that the ds9 process is still running
+        or that ds9 wants something done (such as bringing the windows
+        to the front.
+
+        If the process no longer exists kill the Python Tkinter windows.
+        """
+        # Check to see if the associated ds9 process is still running.
+        if not psutil.pid_exists(DS9PID):
+            # Shutdown
+            self.root.destroy()
+        # Check to see if ds9 is asking to raise the ASDF windows to the front.
+        if check_for_window_raise():
+            raise_all_windows(self.root)
+            bring_to_front(self.root)
+
+        self.root.after(1000, self.poll_for_ds9_updates)
+
+def check_for_window_raise():
+    """
+    Check for the ds9tmp/ds9cmd file, and if it has the raise command.
+
+    Return True if it does, and False otherwise.
+    """
+    create_ds9_tmp_dir()
+    cmdfile = DS9TMP / "ds9cmd"
+    if cmdfile.is_file():
+        with pathlib.Path.open(cmdfile) as cmds:
+            lines = cmds.readlines()
+        if lines and lines[0] == "raise\n":
+            cmdfile.unlink()
+            return True
+    return False
+
+def raise_all_windows(root):
+    windows = root.winfo_children()
+    for window in windows:
+        if isinstance(window, tk.Toplevel) or window == root:
+            window.lift()
 
 def bring_to_front(window):
     window.attributes("-topmost", True)
@@ -483,13 +531,13 @@ def bring_to_front(window):
     window.attributes("-topmost", False)
     window.focus_force()
 
-
 def main():
     root = tk.Tk()
     root.title("ASDF File Access")
     root.lift()
     bring_to_front(root)
-    AsdfEvents(root)
+    ae = AsdfEvents(root)
+    root.after(1000, ae.poll_for_ds9_updates)
     root.mainloop()
 
 if __name__ == "__main__":
