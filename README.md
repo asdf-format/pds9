@@ -26,6 +26,7 @@ This set of instructions will create an alternate version of ds9 that supports a
 # Create a link to ds9 named ads9::
 
   cd /path/to/ds9/
+  
   ln -s ds9 ads9
 
 # Run ads9::
