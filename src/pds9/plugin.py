@@ -5,8 +5,10 @@ import pathlib
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from tkinter.scrolledtext import ScrolledText
 
 import asdf
+import asdf._display as display
 import ds9samp
 import numpy as np
 import psutil
@@ -394,6 +396,10 @@ class AsdfEvents:
         self.entry = tk.Entry(root)
         self.entry.grid(row=1, column=1)
         self.entry.bind("<Return>", self.load_entry_field)
+        self.show_header_button = tk.Button(root, text="show header",
+                        command=self.show_header)
+        self.show_header_button.grid(row=1, column=2)
+        self.show_header_button.config(state=tk.DISABLED)
         tk.Button(root, text="quit",
                         command=root.quit).grid(row=2, column=0,
                         sticky=tk.W, pady=4)
@@ -416,8 +422,10 @@ class AsdfEvents:
         filepath = self.entry.get()
         if filepath:
             self.browse_image_button.config(state=tk.NORMAL)
+            self.show_header_button.config(state=tk.NORMAL)
         else:
             self.browse_image_button.config(state=tk.DISABLED)
+            self.show_header_button.config(state=tk.DISABLED)
             return
         if ":" in filepath:
             im,  fitswcs = get_asdf_image(filepath)
@@ -441,6 +449,7 @@ class AsdfEvents:
         self.entry.delete(0, tk.END)
         self.entry.insert(0, filename)
         self.browse_image_button.config(state=tk.NORMAL)
+        self.show_header_button.config(state=tk.NORMAL)
 
     def browse_image(self):
         filename = self.entry.get()
@@ -465,6 +474,36 @@ class AsdfEvents:
                                             in zip(impaths, imshapes, strict=True)]
             for imdesc in imdescs:
                 imlist.insert(tk.END, imdesc)
+
+    def show_header(self):
+        """
+        Currently targeted for Roman, needs generalization.
+
+        Omits attributes, asdf_library and history (virtually useless for most people)
+        And for Roman, omits roman.meta.cal_logs (nearly as useless for quick looks)
+        """
+        filename = self.entry.get()
+        # Strip everything after first colon
+        filename = filename.split(':')[0]
+        header_window = tk.Toplevel(self.root)
+        header_window.title(f"Header for {filename}")
+        header_window.grid_rowconfigure(0, weight=1)
+        header_window.grid_columnconfigure(0, weight=1)
+        text_area = ScrolledText(header_window, wrap=tk.WORD, width=80, height=80)
+        text_area.grid(row=0, column=0, sticky="nsew", pady=4)
+        tk.Button(header_window, text="quit", command=header_window.destroy).grid(
+            row=1, column=0, sticky=tk.W, pady=4)
+        with asdf.open(filename) as af:
+            tree = af.tree
+            del tree['asdf_library']
+            del tree['history']
+            if 'roman' in tree and 'meta' in tree['roman'] and 'cal_logs' in tree['roman']['meta']:
+                tree['roman']['meta']['cal_logs'] = "OMITTED FOR BREVITY in ds9 header display"
+            lines = display.render_tree(tree, max_rows=3000, max_cols=200)
+        text = "\n".join(lines)
+        text = remove_terminal_markup(text)
+        text_area.insert(tk.END, text)
+
 
     def load_selected_image(self):
         impathindex = self.imlist.curselection()[0]
@@ -496,6 +535,13 @@ class AsdfEvents:
             bring_to_front(self.root)
 
         self.root.after(1000, self.poll_for_ds9_updates)
+
+def remove_terminal_markup(text):
+    for i in range(4):
+        text = text.replace(f"\x1b[{i}m", "")
+    return text
+
+
 
 def check_for_window_raise():
     """
