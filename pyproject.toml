@@ -7,7 +7,8 @@ dependencies = [
   "asdf",
   "astropy",
   "ds9samp",
-  "gwcs"
+  "gwcs",
+  "psutil",
 ]
 requires-python = ">=3.11"
 authors = [
