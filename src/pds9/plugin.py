@@ -14,13 +14,6 @@ from asdf.tagged import TaggedDict, TaggedList
 from asdf.yamlutil import tagged_tree_to_custom_tree
 
 DS9TMP = None
-# The following is needed by the installation routine which uses argv
-# for a different purpose
-try:
-    value = sys.argv[1]
-    DS9PID = int(value)
-except ValueError:
-    DS9PID = value
 
 FILEPATH_DOC = """
 How to specify ASDF images for DS9
@@ -387,8 +380,9 @@ def convert_path_list(pathlist):
 
 class AsdfEvents:
 
-    def __init__(self, root):
+    def __init__(self, root, pid):
         self.root = root
+        self.pid = pid
         self.imbrow = None
         self.imlist = None
         self.impaths = None
@@ -493,7 +487,7 @@ class AsdfEvents:
         If the process no longer exists kill the Python Tkinter windows.
         """
         # Check to see if the associated ds9 process is still running.
-        if not psutil.pid_exists(DS9PID):
+        if not psutil.pid_exists(self.pid):
             # Shutdown
             self.root.destroy()
         # Check to see if ds9 is asking to raise the ASDF windows to the front.
@@ -536,7 +530,7 @@ def main():
     root.title("ASDF File Access")
     root.lift()
     bring_to_front(root)
-    ae = AsdfEvents(root)
+    ae = AsdfEvents(root, int(sys.argv[1]))
     root.after(1000, ae.poll_for_ds9_updates)
     root.mainloop()
 
