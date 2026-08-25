@@ -389,6 +389,7 @@ class AsdfEvents:
         self.imlist = None
         self.impaths = None
         self.imshapes = None
+        self.headers = {} # Holds the header display state for different files. 
         self.af = None
         self.ds9 = ds9samp.start()
         self.ds9.send_array = asdf_send_array.__get__(self.ds9, ds9samp.Connection)
@@ -482,28 +483,59 @@ class AsdfEvents:
         Omits attributes, asdf_library and history (virtually useless for most people)
         And for Roman, omits roman.meta.cal_logs (nearly as useless for quick looks)
         """
-        filename = self.entry.get()
+        afilename = self.entry.get()
         # Strip everything after first colon
-        filename = filename.split(':')[0]
+        filename = afilename.split(':')[0]
+        # Set default display state if first time
         header_window = tk.Toplevel(self.root)
+        if filename not in self.headers:
+            self.headers[filename] = ['omit', header_window]
+        else:
+            self.headers[filename][1] = header_window
         header_window.title(f"Header for {filename}")
         header_window.grid_rowconfigure(0, weight=1)
         header_window.grid_columnconfigure(0, weight=1)
         text_area = ScrolledText(header_window, wrap=tk.WORD, width=80, height=80)
         text_area.grid(row=0, column=0, sticky="nsew", pady=4)
+        if self.headers[filename][0] == 'omit':
+            display_option_label = 'expand omitted sections'
+        else:
+            display_option_label = 'omit expanded sections'
+        tk.Button(header_window, text=display_option_label,
+            command=lambda: self.toggle_display_option(filename)).grid(
+            row=1, column=0, sticky=tk.W, pady=4) 
         tk.Button(header_window, text="quit", command=header_window.destroy).grid(
-            row=1, column=0, sticky=tk.W, pady=4)
+            row=2, column=0, sticky=tk.W, pady=4)
         with asdf.open(filename) as af:
             tree = af.tree
-            del tree['asdf_library']
-            del tree['history']
-            if 'roman' in tree and 'meta' in tree['roman'] and 'cal_logs' in tree['roman']['meta']:
-                tree['roman']['meta']['cal_logs'] = "OMITTED FOR BREVITY in ds9 header display"
-            lines = display.render_tree(tree, max_rows=3000, max_cols=200)
+            if self.headers[filename][0] == 'omit':
+                omitstr = "OMITTED for BREVITY in ds9 header display"
+                del tree['asdf_library']
+                tree['adsf_library'] = omitstr
+                del tree['history']
+                tree['history'] = omitstr
+                if 'roman' in tree and 'meta' in tree['roman'] and 'cal_logs' in tree['roman']['meta']:
+                    tree['roman']['meta']['cal_logs'] = omitstr
+            lines = display.render_tree(tree, max_rows=None, max_cols=None)
         text = "\n".join(lines)
         text = remove_terminal_markup(text)
         text_area.insert(tk.END, text)
 
+    def toggle_display_option(self, filename):
+        if self.headers[filename][0] == 'omit':
+            self.headers[filename][0] = 'expand'
+        else:
+            self.headers[filename][0] = 'omit'
+        self.headers[filename][1].destroy()
+        self.headers[filename][1] = None
+        self.filename = filename
+        self.show_header()
+
+
+    def header_destroy(self, filename):
+        header_window = self.headers[filename][1]
+        del self.headers[filename]
+        header_window.destroy()
 
     def load_selected_image(self):
         impathindex = self.imlist.curselection()[0]
