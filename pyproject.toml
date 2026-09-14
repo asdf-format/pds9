@@ -39,7 +39,7 @@ docs = [
   "sphinx-inline-tabs",
   "matplotlib",
 ]
-test = ["ci-watson>=0.3.0", "pytest>=9.0", "pytest-astropy>=0.11.0"]
+test = ["pytest>=9.0"]
 
 [project.scripts]
 pds9-config = "pds9:cli.main"
@@ -55,16 +55,11 @@ all_files = "1"
 
 [tool.pytest]
 minversion = "9.0"
-doctest_plus = "enabled"
-doctest_rst = "enabled"
-text_file_format = "rst"
 log_cli_level = "INFO"
 xfail_strict = true
-testpaths = ["gwcs", "docs"]
 addopts = [
   "-ra",
   "--color=yes",
-  "--doctest-rst",
   "--strict-config",
   "--strict-markers",
   "-p no:legacypath",
@@ -72,8 +67,9 @@ addopts = [
 norecursedirs = ["build", "docs/_build", ".tox"]
 filterwarnings = [
   "error",
-  "ignore:Models in math_functions:astropy.utils.exceptions.AstropyUserWarning",
-  "ignore:numpy.ndarray size changed:RuntimeWarning",
+  # Need to replace the astropy.samp usage.
+  # See: https://github.com/asdf-format/pds9/issues/17
+  "ignore:astropy.samp was deprecated in version 8.0 and will be removed in a future version; please use pyvo.samp instead.:astropy.utils.exceptions.AstropyDeprecationWarning",
 ]
 
 [tool.coverage.report]
