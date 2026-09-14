@@ -42,7 +42,7 @@ docs = [
 test = ["pytest>=9.0"]
 
 [project.scripts]
-pds9-config = "pds9:cli.main"
+pds9-config = "pds9.cli:main"
 
 [build-system]
 requires = ["setuptools >= 77.0.3", "setuptools_scm"]
