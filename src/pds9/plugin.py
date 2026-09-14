@@ -20,7 +20,7 @@ DS9TMP = None
 FILEPATH_DOC = """
 How to specify ASDF images for DS9
 
-The first part of specifying an ADSF image is to specify
+The first part of specifying an ASDF image is to specify
 the path to an ASDF file, as one might expect. This can
 be an absolute path or a path relative to the current
 directory that ds9 has (normally the directory that ds9
@@ -50,7 +50,7 @@ default for ds9, then a more complex example would be:
 ../mydata.asdf:detector1.data.timeseries[7]image
 
 Note the ':' separator between the file path and the
-ADSF path.
+ASDF path.
 
 Because ds9 uses square brackets as part of its mechanism
 to load array data, the temporary file created replaces
@@ -255,7 +255,7 @@ def extract_asdf_array(tree, apath, ctx):
                 node = node.data[value] if type(node) is TaggedDict else node[value]
             except KeyError:
                 messagebox.showerror("ASDF Path Error",
-                    f"Specified ADSF path component '{value}' not in file")
+                    f"Specified ASDF path component '{value}' not in file")
                 return None
         elif ptype == "i":
             try:
@@ -265,7 +265,7 @@ def extract_asdf_array(tree, apath, ctx):
                     f"Specified ASDF index component '{value}' not in file")
                 return None
     if not node._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"): # noqa: SLF001
-        messagebox.showerror("Given ADSF path does not correspond to an array")
+        messagebox.showerror("Given ASDF path does not correspond to an array")
         return None
     return tagged_tree_to_custom_tree(node, ctx)._make_array() # noqa: SLF001
 
@@ -297,7 +297,7 @@ def extract_gwcs(tree, ctx):
                 node = node[value]
             except KeyError:
                 messagebox.showerror("ASDF Path Error",
-                          f"Specified ADSF path component '{value}' not in file")
+                          f"Specified ASDF path component '{value}' not in file")
                 return None
     gwcs = node
     gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
@@ -511,7 +511,7 @@ class AsdfEvents:
             if self.headers[filename][0] == 'omit':
                 omitstr = "OMITTED for BREVITY in ds9 header display"
                 del tree['asdf_library']
-                tree['adsf_library'] = omitstr
+                tree['asdf_library'] = omitstr
                 del tree['history']
                 tree['history'] = omitstr
                 if 'roman' in tree and 'meta' in tree['roman'] and 'cal_logs' in tree['roman']['meta']:
