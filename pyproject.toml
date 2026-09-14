@@ -16,7 +16,6 @@ authors = [
 ]
 description = "asdf plugin for ds9"
 readme = "README.md"
-license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 keywords = ["asdf", "ds9"]
 classifiers = [
