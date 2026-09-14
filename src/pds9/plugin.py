@@ -65,17 +65,19 @@ the load button will append the ASDF object path to the
 file/path specification and load the image.
 """
 
+
 def create_ds9_tmp_dir():
     """
     Currently generates a ds9tmp directory in user's home directory
     if one doesn't already exist
     """
-    global DS9TMP # noqa: PLW0603
+    global DS9TMP  # noqa: PLW0603
     if DS9TMP is not None:
         return
     homedir = pathlib.Path.home()
     DS9TMP = homedir / "ds9tmp"
     DS9TMP.mkdir(exist_ok=True)
+
 
 def create_ds9_tmpfile_name(asdf_full_path):
     """
@@ -97,66 +99,67 @@ def create_ds9_tmpfile_name(asdf_full_path):
     # Replace square brackets with curly brackets since they will confuse ds9
     fn = fn.replace("[", "(")
     fn = fn.replace("]", ")")
-    return fn # noqa: RET504
+    return fn  # noqa: RET504
+
 
 def asdf_send_array(
-        self,
-        img: np.ndarray,
-        filename,
-        *,
-        timeout: int | None = None,
-    ) -> None:
-        """Send the array to DS9.
+    self,
+    img: np.ndarray,
+    filename,
+    *,
+    timeout: int | None = None,
+) -> None:
+    """Send the array to DS9.
 
-        This creates a temporary file to store the data,
-        sends the data, and then deletes the file.
+    This creates a temporary file to store the data,
+    sends the data, and then deletes the file.
 
-        This version is based on whe ds9samp method of the same name with
-        changes to how temporary files are named and where they are stored.
+    This version is based on when ds9samp method of the same name with
+    changes to how temporary files are named and where they are stored.
 
-        The created file is not deleted until this method is called again.
-        In prinicple, there will one file remaining in the directory, to
-        simplify the initial version of this code.
+    The created file is not deleted until this method is called again.
+    In prinicple, there will one file remaining in the directory, to
+    simplify the initial version of this code.
 
-        Files currently are stored in the ds9tmp subdirectory of the user's
-        home directory.
+    Files currently are stored in the ds9tmp subdirectory of the user's
+    home directory.
 
-        """
-        # Map between NumPy and DS9 storage fields.
-        #
-        # Hack in support for bool values
-        if img.dtype.type == np.bool_:
-            img = img.astype("int8")
+    """
+    # Map between NumPy and DS9 storage fields.
+    #
+    # Hack in support for bool values
+    if img.dtype.type == np.bool_:
+        img = img.astype("int8")
 
-        arr = ds9samp.np_to_array(img)
-        # Create a frame if necessary, since otherwise the ARRAY call
-        # will fail.
-        #
-        if self.get("frame active") is None:
-            self.set("frame new")
+    arr = ds9samp.np_to_array(img)
+    # Create a frame if necessary, since otherwise the ARRAY call
+    # will fail.
+    #
+    if self.get("frame active") is None:
+        self.set("frame new")
 
-        # with tempfile.NamedTemporaryFile(prefix="ds9samp", suffix=".arr") as fh:
-        ##with open(create_ds9_tmpfile(filename), 'wb')  as fh:
+    # with tempfile.NamedTemporaryFile(prefix="ds9samp", suffix=".arr") as fh:
+    ##with open(create_ds9_tmpfile(filename), 'wb')  as fh:
 
-        tmp_filename = create_ds9_tmpfile_name(filename)
-        fp = np.memmap(tmp_filename, mode="w+", dtype=img.dtype, shape=img.shape)
-        fp[:] = img
-        fp.flush()
+    tmp_filename = create_ds9_tmpfile_name(filename)
+    fp = np.memmap(tmp_filename, mode="w+", dtype=img.dtype, shape=img.shape)
+    fp[:] = img
+    fp.flush()
 
-        # If given a RGB/HLS/HSV cube then create a frame. We
-        # could try and check if we have one already, but it's not
-        # clear how to do this, so always create it. If a user
-        # wants to re-use the frame then they can try and do this
-        # manually (probably by creating a FITS file and loading
-        # that?).
+    # If given a RGB/HLS/HSV cube then create a frame. We
+    # could try and check if we have one already, but it's not
+    # clear how to do this, so always create it. If a user
+    # wants to reuse the frame then they can try and do this
+    # manually (probably by creating a FITS file and loading
+    # that?).
 
-        # Should this over-ride the filename as it is going to be
-        # invalid as soon as this call ends? I am not sure that it
-        # is possible.
+    # Should this over-ride the filename as it is going to be
+    # invalid as soon as this call ends? I am not sure that it
+    # is possible.
 
-        cmd = "array "
-        cmd += f" {tmp_filename}{arr}"
-        self.set(cmd, timeout=timeout)
+    cmd = "array "
+    cmd += f" {tmp_filename}{arr}"
+    self.set(cmd, timeout=timeout)
 
 
 def parse_filename(filename):
@@ -177,7 +180,7 @@ def parse_filename(filename):
     """
     fn, apath = filename.split(":")
     # Parse asdf path (assumes no use of these special characters as part of
-    # the attrbutes)
+    # the attributes)
     # Prepend  '.' if it doesn't start with '['
     if apath[0] != "[":
         apath = "." + apath
@@ -187,18 +190,21 @@ def parse_filename(filename):
         if apath[0] == "[":  # index case
             endind = apath[1:].find("]")
             if endind < 0:
-                messagebox.showerror("Path Syntax Error",
-                    "matching end of index ']' not found")
+                messagebox.showerror(
+                    "Path Syntax Error", "matching end of index ']' not found"
+                )
                 return None
-            indexstr = apath[1:endind+1]
+            indexstr = apath[1 : endind + 1]
             try:
                 index = int(indexstr)
             except ValueError:
-                messagebox.showerror("Path Syntax Error",
-                    f"Index must be an integer instead of {indexstr}")
+                messagebox.showerror(
+                    "Path Syntax Error",
+                    f"Index must be an integer instead of {indexstr}",
+                )
                 return None
             alist.append(("i", index))
-            apath = apath[endind+2:]
+            apath = apath[endind + 2 :]
         elif apath[0] == ".":  # attribute case
             nextperiod = apath[1:].find(".")
             nextbracket = apath[1:].find("[")
@@ -211,18 +217,20 @@ def parse_filename(filename):
                 attend = nextbracket
             else:
                 attend = end
-            attr = apath[1:attend+1]
-            apath = apath[attend+1:]
+            attr = apath[1 : attend + 1]
+            apath = apath[attend + 1 :]
             if len(apath) == 0:
                 finished = True
             alist.append(("a", attr))
         else:
-            messagebox.showerror("Path Syntax Error",
-                "Expected path delimiters: '.'' or '[' not found")
+            messagebox.showerror(
+                "Path Syntax Error", "Expected path delimiters: '.'' or '[' not found"
+            )
             return None
         if len(apath) == 0:
             finished = True
     return fn, alist
+
 
 def get_asdf_image(asdfpath):
 
@@ -243,6 +251,7 @@ def get_asdf_image(asdfpath):
     wcs = extract_gwcs(af.tree, af) if "roman" in af.tree else None
     return im, wcs
 
+
 def extract_asdf_array(tree, apath, ctx):
     """
     Given an asdf tree instance, follow the path to the array item,
@@ -254,20 +263,25 @@ def extract_asdf_array(tree, apath, ctx):
             try:
                 node = node.data[value] if type(node) is TaggedDict else node[value]
             except KeyError:
-                messagebox.showerror("ASDF Path Error",
-                    f"Specified ASDF path component '{value}' not in file")
+                messagebox.showerror(
+                    "ASDF Path Error",
+                    f"Specified ASDF path component '{value}' not in file",
+                )
                 return None
         elif ptype == "i":
             try:
                 node = node.data[value] if type(node) is TaggedList else node[value]
             except KeyError:
-                messagebox.showerror("ASDF Path Error",
-                    f"Specified ASDF index component '{value}' not in file")
+                messagebox.showerror(
+                    "ASDF Path Error",
+                    f"Specified ASDF index component '{value}' not in file",
+                )
                 return None
     if not node._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"): # noqa: SLF001
         messagebox.showerror("Given ASDF path does not correspond to an array")
         return None
-    return tagged_tree_to_custom_tree(node, ctx)._make_array() # noqa: SLF001
+    return tagged_tree_to_custom_tree(node, ctx)._make_array()  # noqa: SLF001
+
 
 def fixwcs(hdr):
     """
@@ -284,8 +298,9 @@ def fixwcs(hdr):
     blankcard = 80 * " "
     return hdrstr.replace(endstr, blankcard)
 
+
 def extract_gwcs(tree, ctx):
-# def extract_gwcs(tree, ctx):
+    # def extract_gwcs(tree, ctx):
     """
     This currently only works for roman data
     """
@@ -304,7 +319,8 @@ def extract_gwcs(tree, ctx):
     fitswcs = gwcs.to_fits_sip(degree=5, max_inv_pix_error=None, npoints=10)
     return fixwcs(fitswcs)
 
-def callsearch(pathlist, nodeitem, index, ctx, path, min_nelements): # noqa: PLR0917
+
+def callsearch(pathlist, nodeitem, index, ctx, path, min_nelements):  # noqa: PLR0917
     spath = path.copy()
     spath.append(index)
     sresult = search_tree(nodeitem[index], ctx, spath, min_nelements)
@@ -314,6 +330,7 @@ def callsearch(pathlist, nodeitem, index, ctx, path, min_nelements): # noqa: PLR
         else:
             pathlist += sresult
 
+
 def search_tree(tree, ctx, path=None, min_nelements=1000):
     """
     Walk through the tree recursively to find all images and their associated paths
@@ -322,7 +339,7 @@ def search_tree(tree, ctx, path=None, min_nelements=1000):
         path = []
     pathlist = []
     if isinstance(tree, TaggedDict):
-        if tree._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"): # noqa: SLF001
+        if tree._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"):  # noqa: SLF001
             # Convert and check for size
             lazyim = tagged_tree_to_custom_tree(tree, ctx)
             if len(lazyim.shape) < 2:
@@ -349,18 +366,20 @@ def search_tree(tree, ctx, path=None, min_nelements=1000):
         return pathlist
     return None
 
+
 def process_path_lists(pathlists):
     """
     Generate a simple list of text paths useful for ds9 and a corresponding
     list of image info as single strings.
     """
-    paths =[]
+    paths = []
     shapes = []
     for item in pathlists:
         path, imshape = convert_path_list(item)
         paths.append(path)
         shapes.append(imshape)
     return paths, shapes
+
 
 def convert_path_list(pathlist):
     """
@@ -380,8 +399,8 @@ def convert_path_list(pathlist):
     imshape = str(iminfo[1])
     return path, imshape
 
-class AsdfEvents:
 
+class AsdfEvents:
     def __init__(self, root, pid):
         self.root = root
         self.pid = pid
@@ -389,7 +408,7 @@ class AsdfEvents:
         self.imlist = None
         self.impaths = None
         self.imshapes = None
-        self.headers = {} # Holds the header display state for different files. 
+        self.headers = {}  # Holds the header display state for different files.
         self.af = None
         self.ds9 = ds9samp.start()
         self.ds9.send_array = asdf_send_array.__get__(self.ds9, ds9samp.Connection)
@@ -397,24 +416,26 @@ class AsdfEvents:
         self.entry = tk.Entry(root)
         self.entry.grid(row=1, column=1)
         self.entry.bind("<Return>", self.load_entry_field)
-        self.show_header_button = tk.Button(root, text="show header",
-                        command=self.show_header)
+        self.show_header_button = tk.Button(
+            root, text="show header", command=self.show_header
+        )
         self.show_header_button.grid(row=1, column=2)
         self.show_header_button.config(state=tk.DISABLED)
-        tk.Button(root, text="quit",
-                        command=root.quit).grid(row=2, column=0,
-                        sticky=tk.W, pady=4)
-        tk.Button(root, text="load",
-                        command=self.load_entry_field).grid(row=2, column=1,
-                        sticky=tk.W, pady=4)
-        tk.Button(root, text="Help",
-                        command=self.show_filename_help).grid(row=2, column=2,
-                        sticky=tk.W, pady=4)
-        tk.Button(root, text="Browse for ASDF file",
-                        command=self.browse_filename).grid(row=0, column=0,
-                        sticky=tk.W, pady=4)
-        self.browse_image_button = tk.Button(root, text="Browse for Image",
-                                                command=self.browse_image)
+        tk.Button(root, text="quit", command=root.quit).grid(
+            row=2, column=0, sticky=tk.W, pady=4
+        )
+        tk.Button(root, text="load", command=self.load_entry_field).grid(
+            row=2, column=1, sticky=tk.W, pady=4
+        )
+        tk.Button(root, text="Help", command=self.show_filename_help).grid(
+            row=2, column=2, sticky=tk.W, pady=4
+        )
+        tk.Button(root, text="Browse for ASDF file", command=self.browse_filename).grid(
+            row=0, column=0, sticky=tk.W, pady=4
+        )
+        self.browse_image_button = tk.Button(
+            root, text="Browse for Image", command=self.browse_image
+        )
 
         self.browse_image_button.grid(row=0, column=1, sticky=tk.W, pady=4)
         self.browse_image_button.config(state=tk.DISABLED)
@@ -429,7 +450,7 @@ class AsdfEvents:
             self.show_header_button.config(state=tk.DISABLED)
             return
         if ":" in filepath:
-            im,  fitswcs = get_asdf_image(filepath)
+            im, fitswcs = get_asdf_image(filepath)
             if im is None:
                 return
         else:
@@ -440,10 +461,8 @@ class AsdfEvents:
             fwcs.write(bytes(fitswcs, "utf-8"))
         self.ds9.set(f"wcs load {wcsfn}")
 
-
     def show_filename_help(self):
         messagebox.showinfo(title="Filename/Image Path Info", message=FILEPATH_DOC)
-
 
     def browse_filename(self):
         filename = filedialog.askopenfilename()
@@ -463,16 +482,19 @@ class AsdfEvents:
             imbrow.wm_title("ASDF Image Browser")
             imlist = tk.Listbox(imbrow, width=60, height=20)
             imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
-            button_load = tk.Button(imbrow, text="Load Image",
-                                    command=self.load_selected_image)
+            button_load = tk.Button(
+                imbrow, text="Load Image", command=self.load_selected_image
+            )
             button_load.pack()
             self.imbrow = imbrow
             self.imlist = imlist
             impaths, imshapes = process_path_lists(pathlists)
             self.impaths = impaths
             self.imshapes = imshapes
-            imdescs = ["  ".join((impath, str(imshape))) for impath, imshape
-                                            in zip(impaths, imshapes, strict=True)]
+            imdescs = [
+                "  ".join((impath, str(imshape)))
+                for impath, imshape in zip(impaths, imshapes, strict=True)
+            ]
             for imdesc in imdescs:
                 imlist.insert(tk.END, imdesc)
 
@@ -485,11 +507,11 @@ class AsdfEvents:
         """
         afilename = self.entry.get()
         # Strip everything after first colon
-        filename = afilename.split(':')[0]
+        filename = afilename.split(":")[0]
         # Set default display state if first time
         header_window = tk.Toplevel(self.root)
         if filename not in self.headers:
-            self.headers[filename] = ['omit', header_window]
+            self.headers[filename] = ["omit", header_window]
         else:
             self.headers[filename][1] = header_window
         header_window.title(f"Header for {filename}")
@@ -497,18 +519,21 @@ class AsdfEvents:
         header_window.grid_columnconfigure(0, weight=1)
         text_area = ScrolledText(header_window, wrap=tk.WORD, width=80, height=80)
         text_area.grid(row=0, column=0, sticky="nsew", pady=4)
-        if self.headers[filename][0] == 'omit':
-            display_option_label = 'expand omitted sections'
+        if self.headers[filename][0] == "omit":
+            display_option_label = "expand omitted sections"
         else:
-            display_option_label = 'omit expanded sections'
-        tk.Button(header_window, text=display_option_label,
-            command=lambda: self.toggle_display_option(filename)).grid(
-            row=1, column=0, sticky=tk.W, pady=4) 
+            display_option_label = "omit expanded sections"
+        tk.Button(
+            header_window,
+            text=display_option_label,
+            command=lambda: self.toggle_display_option(filename),
+        ).grid(row=1, column=0, sticky=tk.W, pady=4)
         tk.Button(header_window, text="quit", command=header_window.destroy).grid(
-            row=2, column=0, sticky=tk.W, pady=4)
+            row=2, column=0, sticky=tk.W, pady=4
+        )
         with asdf.open(filename) as af:
             tree = af.tree
-            if self.headers[filename][0] == 'omit':
+            if self.headers[filename][0] == "omit":
                 omitstr = "OMITTED for BREVITY in ds9 header display"
                 del tree['asdf_library']
                 tree['asdf_library'] = omitstr
@@ -522,15 +547,14 @@ class AsdfEvents:
         text_area.insert(tk.END, text)
 
     def toggle_display_option(self, filename):
-        if self.headers[filename][0] == 'omit':
-            self.headers[filename][0] = 'expand'
+        if self.headers[filename][0] == "omit":
+            self.headers[filename][0] = "expand"
         else:
-            self.headers[filename][0] = 'omit'
+            self.headers[filename][0] = "omit"
         self.headers[filename][1].destroy()
         self.headers[filename][1] = None
         self.filename = filename
         self.show_header()
-
 
     def header_destroy(self, filename):
         header_window = self.headers[filename][1]
@@ -568,11 +592,11 @@ class AsdfEvents:
 
         self.root.after(1000, self.poll_for_ds9_updates)
 
+
 def remove_terminal_markup(text):
     for i in range(4):
         text = text.replace(f"\x1b[{i}m", "")
     return text
-
 
 
 def check_for_window_raise():
@@ -591,17 +615,20 @@ def check_for_window_raise():
             return True
     return False
 
+
 def raise_all_windows(root):
     windows = root.winfo_children()
     for window in windows:
         if isinstance(window, tk.Toplevel) or window == root:
             window.lift()
 
+
 def bring_to_front(window):
     window.attributes("-topmost", True)
     window.update_idletasks()  # Ensure window is rendered
     window.attributes("-topmost", False)
     window.focus_force()
+
 
 def main():
     root = tk.Tk()
@@ -612,6 +639,6 @@ def main():
     root.after(1000, ae.poll_for_ds9_updates)
     root.mainloop()
 
+
 if __name__ == "__main__":
     sys.exit(main())
-

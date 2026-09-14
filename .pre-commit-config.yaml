@@ -1,0 +1,67 @@
+exclude: "(asdf/(_extern||_jsonschema)/.*)|(.*\\.ambr)"
+repos:
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+    - id: check-added-large-files
+    - id: check-ast
+    - id: check-case-conflict
+    - id: check-yaml
+      args: ["--unsafe"]
+    - id: check-toml
+    - id: check-merge-conflict
+    - id: check-symlinks
+    - id: debug-statements
+    - id: detect-private-key
+    - id: end-of-file-fixer
+      exclude: ".*fits"
+    - id: trailing-whitespace
+      exclude: ".*fits"
+
+- repo: https://github.com/pre-commit/pygrep-hooks
+  rev: v1.10.0
+  hooks:
+    - id: python-check-blanket-noqa
+    - id: python-check-mock-methods
+    - id: rst-directive-colons
+    - id: rst-inline-touching-normal
+    - id: text-unicode-replacement-char
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.2
+  hooks:
+    - id: codespell
+      args: ["--write-changes"]
+      additional_dependencies:
+        - tomli
+
+- repo: https://github.com/ikamensh/flynt/
+  rev: '1.0.6'
+  hooks:
+    - id: flynt
+      exclude: "asdf/(extern||_jsonschema)/.*"
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: 'v0.16.0'
+  hooks:
+    - id: ruff-check
+      args: ["--fix"]
+    - id: ruff-format
+
+- repo: https://github.com/tombi-toml/tombi-pre-commit
+  rev: v1.2.0
+  hooks:
+    - id: tombi-format
+      args: ["--offline"]
+      language_version: ">=3.10"
+    - id: tombi-lint
+      args: ["--offline"]
+      language_version: ">=3.10"
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  # Zizmor version.
+  rev: v1.26.1
+  hooks:
+    # Run the linter.
+    - id: zizmor
+      args: [--no-progress, --fix]
