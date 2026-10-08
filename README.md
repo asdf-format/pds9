@@ -71,7 +71,7 @@ of <enter> in the text entry field).
 Currently no attempt is made to load one of the images
 by default (that will change in the future). The image
 will need a change to the stretch to see the fainter 
-details. This image is located at the various ADSF
+details. This image is located at the various ASDF
 internal locations:
 
 * images
