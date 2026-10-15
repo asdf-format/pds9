@@ -26,7 +26,7 @@ This set of instructions will create an alternate version of ds9 that supports a
 # Create a link to ds9 named ads9::
 
   cd /path/to/ds9/
-  
+
   ln -s ds9 ads9
 
 # Run ads9::
@@ -46,7 +46,7 @@ Loading ASDF files
 
 The initial user interface is quite basic. By clicking the asdf
 button, that will open a new, persistent dialog window, that
-will require closing the window specifically when stopping ds9. 
+will require closing the window specifically when stopping ds9.
 In the future, we will have the asdf dialog quit if the
 corresponding ds9 window is closed.
 
@@ -55,15 +55,15 @@ ds9 is running.
 
 This version uses a simple text entry box to specify both
 the path to the ASDF file, as well as the location of
-the image within the ASDF file. The help button will 
+the image within the ASDF file. The help button will
 display the details of how these two are combined.
 
 The associated data file provided in the data subdirectory
 contains the same image (M51 as used long ago as a sample
-image for IRAF). References to the same image are located 
-in a number of different locations in the ASDF tree. 
-Details of how to specify both paths are given in the 
-help dialog obtained by clicking the help button on the 
+image for IRAF). References to the same image are located
+in a number of different locations in the ASDF tree.
+Details of how to specify both paths are given in the
+help dialog obtained by clicking the help button on the
 ASDF dialog window. Currently the load button must be
 clicked to load the image (it does not yet trigger on use
 of <enter> in the text entry field).

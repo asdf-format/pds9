@@ -1,32 +1,31 @@
 [project]
 name = "pds9"
-dynamic = ["version"]
+description = "asdf plugin for ds9"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Perry Greenfield", email = "perry@stsci.edu" },
+]
+keywords = ["asdf", "ds9"]
+classifiers = ["Programming Language :: Python"]
 dependencies = [
-  "numpy",
-  "lz4",
   "asdf",
   "astropy",
   "ds9samp",
   "gwcs",
+  "lz4",
+  "numpy",
   "psutil",
 ]
-requires-python = ">=3.11"
-authors = [
-  {name = "Perry Greenfield", email = "perry@stsci.edu"},
-]
-description = "asdf plugin for ds9"
-readme = "README.md"
-license-files = ["LICENSE"]
-keywords = ["asdf", "ds9"]
-classifiers = [
-  "Programming Language :: Python"
-]
+dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/asdf-format/pds9"
-Documentation = "https://pds9.readthedocs.org"
-Repository = "https://github.com/asdf-format/pds9.git"
 "Bug Tracker" = "https://github.com/asdf-format/pds9/issues"
+Documentation = "https://pds9.readthedocs.org"
+Homepage = "https://github.com/asdf-format/pds9"
+Repository = "https://github.com/asdf-format/pds9.git"
 
 [project.optional-dependencies]
 docs = [
@@ -45,7 +44,7 @@ test = ["pytest>=9.0"]
 pds9-config = "pds9.cli:main"
 
 [build-system]
-requires = ["setuptools >= 77.0.3", "setuptools_scm"]
+requires = ["setuptools_scm", "setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [tool.build_sphinx]
@@ -85,74 +84,74 @@ exclude_lines = [
 [tool.ruff.lint]
 select = [
   # "AIR",   # Airflow
-  "ERA", # eradicate (remove commented out code)
+  "ERA",  # eradicate (remove commented out code)
   # "FAST",  # FastAPI
-  "YTT", # flake8-2020 (system version info)
+  "YTT",  # flake8-2020 (system version info)
   # "ANN",   # flake8-annotations
   # "ASYNC", # flake8-async
-  "S",   # flake8-bandit (security checks)
-  "BLE", # flake8-blind-except (prevent blind except statements)
+  "S",  # flake8-bandit (security checks)
+  "BLE",  # flake8-blind-except (prevent blind except statements)
   # "FBT",   # flake8-boolean-trap
-  "B", # flake8-bugbear (prevent common gotcha bugs)
-  "A", # flake8-builtins (prevent shadowing of builtins)
+  "B",  # flake8-bugbear (prevent common gotcha bugs)
+  "A",  # flake8-builtins (prevent shadowing of builtins)
   # "COM",   # flake8-commas
-  "C4", # flake8-comprehensions (best practices for comprehensions)
+  "C4",  # flake8-comprehensions (best practices for comprehensions)
   # "CPY",   # flake8-copyright
   # "DTZ",   # flake8-datetimez
-  "T10", # flake8-debugger (prevent debugger statements in code)
+  "T10",  # flake8-debugger (prevent debugger statements in code)
   # "DJ",    # flake8-django
-  "EM", # flake8-errormessages (best practices for error messages)
+  "EM",  # flake8-errormessages (best practices for error messages)
   # "EXE",   # flake8-executable
   # "FIX",   # flake8-fixme
   # "FA",    # flake8-future-annotations
-  "INT", # flake8-gettext (when to use printf style strings)
-  "ISC", # flake8-implicit-str-concat (prevent implicit string concat)
-  "ICN", # flake8-import-conventions (enforce import conventions)
+  "INT",  # flake8-gettext (when to use printf style strings)
+  "ISC",  # flake8-implicit-str-concat (prevent implicit string concat)
+  "ICN",  # flake8-import-conventions (enforce import conventions)
   # "LOG",   # flake8-logging
   # "G",     # flake8-logging-format
-  "INP", # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
-  "PIE", # flake8-pie (misc suggested improvement linting)
-  "T20", # flake8-print (prevent print statements in code)
+  "INP",  # flake8-no-pep420 (prevent use of PEP420, i.e. implicit name spaces)
+  "PIE",  # flake8-pie (misc suggested improvement linting)
+  "T20",  # flake8-print (prevent print statements in code)
   # "PYI",   # flake8-pyi
   "PT",  # flake8-pytest-style (best practices for pytest)
-  "Q",   # flake8-quotes (best practices for quotes)
-  "RSE", # flake8-raise (best practices for raising exceptions)
-  "RET", # flake8-return (best practices for return statements)
-  "SLF", # flake8-self
-  "SIM", # flake8-simplify (suggest simplifications to code where possible)
+  "Q",  # flake8-quotes (best practices for quotes)
+  "RSE",  # flake8-raise (best practices for raising exceptions)
+  "RET",  # flake8-return (best practices for return statements)
+  "SLF",  # flake8-self
+  "SIM",  # flake8-simplify (suggest simplifications to code where possible)
   # "SLOT",  # flake8-slots
-  "TID", # flake8-tidy-imports (prevent banned api and best import practices)
+  "TID",  # flake8-tidy-imports (prevent banned api and best import practices)
   # "TD",    # flake8-todos
   # "TC",    # flake8-type-checking
   # "ARG",   # flake8-unused-arguments
-  "PTH", # flake8-use-pathlib (prefer pathlib over os.path)
-  "FLY", # flynt (f-string conversion where possible)
-  "I",   # isort (import sorting)
+  "PTH",  # flake8-use-pathlib (prefer pathlib over os.path)
+  "FLY",  # flynt (f-string conversion where possible)
+  "I",  # isort (import sorting)
   # "C90",   # mccabe
-  "NPY", # NumPy-specific checks (recommendations from NumPy)
+  "NPY",  # NumPy-specific checks (recommendations from NumPy)
   # "PD",    # pandas-vet
   # "N",     # pep8-naming
-  "PERF", # Perflint (performance linting)
-  "E",    # pycodestyle (part of default flake8)
-  "W",    # pycodestyle (part of default flake8)
+  "PERF",  # Perflint (performance linting)
+  "E",  # pycodestyle (part of default flake8)
+  "W",  # pycodestyle (part of default flake8)
   # "DOC",   # pydoclint
   # "D",     # pydocstyle
-  "F",   # Pyflakes (part of default flake8)
-  "PGH", # pygrep (simple grep checks)
+  "F",  # Pyflakes (part of default flake8)
+  "PGH",  # pygrep (simple grep checks)
   "PL",  # pylint (general linting, flake8 alternative)
   "UP",  # pyupgrade (upgrade code to modern python)
   # "FURB",  # refurb
-  "RUF", # ruff specific checks
-  "TRY", # tryceratops (linting for try/except blocks)
+  "RUF",  # ruff specific checks
+  "TRY",  # tryceratops (linting for try/except blocks)
 ]
 ignore = [
   "ISC001",  # conflicts with formatter at times
-  "PLR2004", # magic values (this should be dealt with at some point)
-  "PLR0912", # Too many branches in function
-  "PLR0913", # Too many arguments in function
-  "PLR0915", # Too many statements in function
-  "PLC0415", # import outside toplevel, this creates issues with circular and delayed imports
+  "PLR2004",  # magic values (this should be dealt with at some point)
+  "PLR0912",  # Too many branches in function
+  "PLR0913",  # Too many arguments in function
+  "PLR0915",  # Too many statements in function
+  "PLC0415",  # import outside toplevel, this creates issues with circular and delayed imports
   "RUF059",  # Unpacked variable is never used
-  "B028",    # No explicit stacklevel found
+  "B028",  # No explicit stacklevel found
   "RUF043",  # pytest-raises-ambiguous-pattern
 ]
