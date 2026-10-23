@@ -277,7 +277,7 @@ def extract_asdf_array(tree, apath, ctx):
                     f"Specified ASDF index component '{value}' not in file",
                 )
                 return None
-    if not node._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"): # noqa: SLF001
+    if not node._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"):  # noqa: SLF001
         messagebox.showerror("Given ASDF path does not correspond to an array")
         return None
     return tagged_tree_to_custom_tree(node, ctx)._make_array()  # noqa: SLF001
@@ -311,8 +311,10 @@ def extract_gwcs(tree, ctx):
             try:
                 node = node[value]
             except KeyError:
-                messagebox.showerror("ASDF Path Error",
-                          f"Specified ASDF path component '{value}' not in file")
+                messagebox.showerror(
+                    "ASDF Path Error",
+                    f"Specified ASDF path component '{value}' not in file",
+                )
                 return None
     gwcs = node
     gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
@@ -535,12 +537,16 @@ class AsdfEvents:
             tree = af.tree
             if self.headers[filename][0] == "omit":
                 omitstr = "OMITTED for BREVITY in ds9 header display"
-                del tree['asdf_library']
-                tree['asdf_library'] = omitstr
-                del tree['history']
-                tree['history'] = omitstr
-                if 'roman' in tree and 'meta' in tree['roman'] and 'cal_logs' in tree['roman']['meta']:
-                    tree['roman']['meta']['cal_logs'] = omitstr
+                del tree["asdf_library"]
+                tree["asdf_library"] = omitstr
+                del tree["history"]
+                tree["history"] = omitstr
+                if (
+                    "roman" in tree
+                    and "meta" in tree["roman"]
+                    and "cal_logs" in tree["roman"]["meta"]
+                ):
+                    tree["roman"]["meta"]["cal_logs"] = omitstr
             lines = display.render_tree(tree, max_rows=None, max_cols=None)
         text = "\n".join(lines)
         text = remove_terminal_markup(text)
