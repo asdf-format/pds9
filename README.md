@@ -15,11 +15,11 @@ Installation instructions
 
 This set of instructions will create an alternate version of ds9 that supports asdf.
 
-# Install pds9::
+# Install pds9
 
   pip install git+https://github.com/asdf-format/pds9
 
-# Generate the startup file's contents::
+# Generate the startup file's contents
 
   pds9-config -p > ~/.ds9.ini
 
@@ -27,7 +27,7 @@ This set of instructions will create an alternate version of ds9 that supports a
 > This will overwrite the contents in ~/.ds9.ini. If you already use this file consider
 > appending to the existing file.
 
-# Run ds9::
+# Run ds9
 
 Start ds9 via the command line:
 
