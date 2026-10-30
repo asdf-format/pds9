@@ -17,6 +17,8 @@ from asdf.yamlutil import tagged_tree_to_custom_tree
 
 DS9TMP = None
 
+DEFAULT_IMAGE_THRESHHOLD = 10000
+
 FILEPATH_DOC = """
 How to specify ASDF images for DS9
 
@@ -312,7 +314,7 @@ def extract_gwcs(tree, ctx):
                 node = node[value]
             except KeyError:
                 messagebox.showerror("ASDF Path Error",
-                          f"Specified ASDF path component '{value}' not in file")
+                    f"A WCS not found\nClick OK to continue loading")
                 return None
     gwcs = node
     gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
@@ -408,6 +410,7 @@ class AsdfEvents:
         self.imlist = None
         self.impaths = None
         self.imshapes = None
+        self.image_threshhold = DEFAULT_IMAGE_THRESHHOLD
         self.headers = {}  # Holds the header display state for different files.
         self.af = None
         self.ds9 = ds9samp.start()
@@ -456,10 +459,11 @@ class AsdfEvents:
         else:
             return
         self.ds9.send_array(im, filepath)
-        wcsfn = str((DS9TMP / "wcs.fits").resolve())
-        with pathlib.Path.open(wcsfn, "wb") as fwcs:
-            fwcs.write(bytes(fitswcs, "utf-8"))
-        self.ds9.set(f"wcs load {wcsfn}")
+        if fitswcs:
+            wcsfn = str((DS9TMP / "wcs.fits").resolve())
+            with pathlib.Path.open(wcsfn, "wb") as fwcs:
+                fwcs.write(bytes(fitswcs, "utf-8"))
+            self.ds9.set(f"wcs load {wcsfn}")
 
     def show_filename_help(self):
         messagebox.showinfo(title="Filename/Image Path Info", message=FILEPATH_DOC)
@@ -475,17 +479,27 @@ class AsdfEvents:
         filename = self.entry.get()
         # Discard the image path if it exists
         filename = filename.split(":")[0]
+        if self.image_threshhold:
+            threshhold_label = "show all images"
+        else:
+            threshhold_label = "show only large images"
         with asdf.open(filename, _force_raw_types=True) as af:
             self.af = af
-            pathlists = search_tree(af.tree, af)
+            pathlists = search_tree(af.tree, af, min_nelements=self.image_threshhold)
             imbrow = tk.Toplevel(self.root)
             imbrow.wm_title("ASDF Image Browser")
+            imbrow.grid_rowconfigure(0, weight=1)
+            imbrow.grid_columnconfigure(0, weight=1)
             imlist = tk.Listbox(imbrow, width=60, height=20)
-            imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
+            imlist.grid(row=0, column=0, sticky="nsew", pady=4)
+            # imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
             button_load = tk.Button(
                 imbrow, text="Load Image", command=self.load_selected_image
-            )
-            button_load.pack()
+            ).grid(row=1, column=0, sticky=tk.W, padx=4, pady=4)
+            # button_load.pack()
+            button_threshhold = tk.Button(
+                imbrow, text=threshhold_label, command=self.toggle_image_threshhold_option
+            ).grid(row=1, column=1, sticky=tk.W, padx=4, pady=4)
             self.imbrow = imbrow
             self.imlist = imlist
             impaths, imshapes = process_path_lists(pathlists)
@@ -555,6 +569,14 @@ class AsdfEvents:
         self.headers[filename][1] = None
         self.filename = filename
         self.show_header()
+
+    def toggle_image_threshhold_option(self):
+        if self.image_threshhold == 0:
+            self.image_threshhold = DEFAULT_IMAGE_THRESHHOLD
+        else:
+            self.image_threshhold = 0
+        self.imbrow.destroy()
+        self.browse_image()
 
     def header_destroy(self, filename):
         header_window = self.headers[filename][1]
