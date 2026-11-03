@@ -15,31 +15,32 @@ Installation instructions
 
 This set of instructions will create an alternate version of ds9 that supports asdf.
 
-# Install pds9::
+# Install pds9
 
   pip install git+https://github.com/asdf-format/pds9
 
-# Generate the startup file's contents::
+# Generate the startup file's contents
 
-  pds9-config -p > ~/.ads9.ini
+  pds9-config -p > ~/.ds9.ini
 
-# Create a link to ds9 named ads9::
+> [!NOTE]
+> This will overwrite the contents in ~/.ds9.ini. If you already use this file consider
+> appending to the existing file.
 
-  cd /path/to/ds9/
+# Run ds9
 
-  ln -s ds9 ads9
+Start ds9 via the command line:
 
-# Run ads9::
+  /path/to/ds9/ds9
 
-/path/to/ds9/ads9
+or start the installed app.
 
 
 For convenience, you may add that path to the environmental
 PATH (if not already added) or create an alias.
 
-When you start ads9 (or ds9 if no link is used), you will
-see a new item on the file button row at the end with the
-label "asdf".
+When you start ds9, you will see a new item on the file button
+row at the end with the label "asdf".
 
 Loading ASDF files
 ==================
