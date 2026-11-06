@@ -49,15 +49,6 @@ repos:
       args: ["--fix"]
     - id: ruff-format
 
-- repo: https://github.com/tombi-toml/tombi-pre-commit
-  rev: v1.2.0
-  hooks:
-    - id: tombi-format
-      args: ["--offline"]
-      language_version: ">=3.10"
-    - id: tombi-lint
-      args: ["--offline"]
-      language_version: ">=3.10"
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
   # Zizmor version.
   rev: v1.26.1
