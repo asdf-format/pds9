@@ -492,12 +492,10 @@ class AsdfEvents:
             imbrow.grid_columnconfigure(0, weight=1)
             imlist = tk.Listbox(imbrow, width=60, height=20)
             imlist.grid(row=0, column=0, sticky="nsew", pady=4)
-            # imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
-            button_load = tk.Button(
+            tk.Button(
                 imbrow, text="Load Image", command=self.load_selected_image
             ).grid(row=1, column=0, sticky=tk.W, padx=4, pady=4)
-            # button_load.pack()
-            button_threshold = tk.Button(
+            tk.Button(
                 imbrow, text=threshold_label, command=self.toggle_image_threshold_option
             ).grid(row=1, column=1, sticky=tk.W, padx=4, pady=4)
             self.imbrow = imbrow
