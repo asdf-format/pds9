@@ -314,7 +314,8 @@ def extract_gwcs(tree, ctx):
                 node = node[value]
             except KeyError:
                 messagebox.showerror(
-                    "ASDF Path Error", "A WCS not found\nClick OK to continue loading")
+                    "ASDF Path Error", "A WCS not found\nClick OK to continue loading"
+                )
                 return None
     gwcs = node
     gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
@@ -493,7 +494,8 @@ class AsdfEvents:
             imlist = tk.Listbox(imbrow, width=60, height=20)
             imlist.grid(row=0, column=0, sticky="nsew", pady=4)
             tk.Button(imbrow, text="Load Image", command=self.load_selected_image).grid(
-                row=1, column=0, sticky=tk.W, padx=4, pady=4)
+                row=1, column=0, sticky=tk.W, padx=4, pady=4
+            )
             tk.Button(
                 imbrow, text=threshold_label, command=self.toggle_image_threshold_option
             ).grid(row=1, column=1, sticky=tk.W, padx=4, pady=4)
