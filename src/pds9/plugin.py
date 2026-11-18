@@ -458,10 +458,11 @@ class AsdfEvents:
         else:
             return
         self.ds9.send_array(im, filepath)
-        wcsfn = str((DS9TMP / "wcs.fits").resolve())
-        with pathlib.Path.open(wcsfn, "wb") as fwcs:
-            fwcs.write(bytes(fitswcs, "utf-8"))
-        self.ds9.set(f"wcs load {wcsfn}")
+        if fitswcs:
+            wcsfn = str((DS9TMP / "wcs.fits").resolve())
+            with pathlib.Path.open(wcsfn, "wb") as fwcs:
+                fwcs.write(bytes(fitswcs, "utf-8"))
+            self.ds9.set(f"wcs load {wcsfn}")
 
     def show_filename_help(self):
         messagebox.showinfo(title="Filename/Image Path Info", message=FILEPATH_DOC)
