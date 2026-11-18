@@ -13,8 +13,6 @@ import asdf._display as display
 import ds9samp
 import numpy as np
 import psutil
-from asdf.tagged import TaggedDict, TaggedList
-from asdf.yamlutil import tagged_tree_to_custom_tree
 
 DS9TMP = None
 
@@ -257,27 +255,26 @@ def get_asdf_image(asdfpath):
         return None
     # Must load in raw format to make the entire structure easily searchable
     try:
-        af = asdf.open(fn, _force_raw_types=True)
+        af = asdf.open(fn, lazy_tree=True, lazy_load=False)
     except FileNotFoundError:
         messagebox.showerror("File not Found", f"File {fn} not found")
         return None
     # Extract the referenced array
-    node = af.tree
-    im = extract_asdf_array(node, alist, af)
-    wcs = extract_gwcs(af.tree, af) if "roman" in af.tree else None
+    im = extract_asdf_array(af, alist)
+    wcs = extract_gwcs(af) if "roman" in af else None
     return im, wcs
 
 
-def extract_asdf_array(tree, apath, ctx):
+def extract_asdf_array(af, apath):
     """
     Given an asdf tree instance, follow the path to the array item,
     convert it into an array and return the array instance.
     """
-    node = tree
+    node = af
     for ptype, value in apath:
         if ptype == "a":
             try:
-                node = node.data[value] if type(node) is TaggedDict else node[value]
+                node = node[value]
             except KeyError:
                 messagebox.showerror(
                     "ASDF Path Error",
@@ -286,17 +283,17 @@ def extract_asdf_array(tree, apath, ctx):
                 return None
         elif ptype == "i":
             try:
-                node = node.data[value] if type(node) is TaggedList else node[value]
+                node = node[value]
             except KeyError:
                 messagebox.showerror(
                     "ASDF Path Error",
                     f"Specified ASDF index component '{value}' not in file",
                 )
                 return None
-    if not node._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"):  # noqa: SLF001
+    if not isinstance(node, np.ndarray):
         messagebox.showerror("Given ASDF path does not correspond to an array")
         return None
-    return tagged_tree_to_custom_tree(node, ctx)._make_array()  # noqa: SLF001
+    return node
 
 
 def fixwcs(hdr):
@@ -315,25 +312,18 @@ def fixwcs(hdr):
     return hdrstr.replace(endstr, blankcard)
 
 
-def extract_gwcs(tree, ctx):
-    # def extract_gwcs(tree, ctx):
+def extract_gwcs(af):
     """
     This currently only works for roman data
     """
-    node = tree
-    apath = (("a", "roman"), ("a", "meta"), ("a", "wcs"))
-    for ptype, value in apath:
-        if ptype == "a":
-            try:
-                node = node[value]
-            except KeyError:
-                messagebox.showerror(
-                    "ASDF Path Error",
-                    f"Specified ASDF path component '{value}' not in file",
-                )
-                return None
-    gwcs = node
-    gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
+    try:
+        gwcs = af["roman"]["meta"]["wcs"]
+    except KeyError:
+        messagebox.showerror(
+            "Missing GWCS",
+            "No roman.meta.wcs found in file",
+        )
+        return None
     fitswcs = gwcs.to_fits_sip(degree=5, max_inv_pix_error=None, npoints=10)
     return fixwcs(fitswcs)
 
