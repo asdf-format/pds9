@@ -253,7 +253,6 @@ def get_asdf_image(asdfpath):
         fn, alist = retval
     else:
         return None
-    # Must load in raw format to make the entire structure easily searchable
     try:
         af = asdf.open(fn, lazy_tree=True, lazy_load=False)
     except FileNotFoundError:
