@@ -162,7 +162,16 @@ def asdf_send_array(
 
 
 def _asdf_search_to_ds9_path(asdf_search_path):
+    """
+    Convert an asdf.search formatted path to a path suitable for this plugin.
+    """
     ds9_path = None
+    # This converts an asdf path (example: root["foo"][0])
+    # to a format understood by this plugin by:
+    # - stripping the leading "root["
+    # - converting the string to tokens by splitting on "[" and stripping "]"
+    # - converting each token (either a quoted string or int) using ast.literal_eval)
+    # The plugin-compatible path is then constructed using the parsed tokens
     for token in [
         ast.literal_eval(t.rstrip("]"))
         for t in asdf_search_path.removeprefix("root[").split("[")
