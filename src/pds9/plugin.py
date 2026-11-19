@@ -1,4 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+import ast
 import os
 import os.path
 import pathlib
@@ -12,8 +13,6 @@ import asdf._display as display
 import ds9samp
 import numpy as np
 import psutil
-from asdf.tagged import TaggedDict, TaggedList
-from asdf.yamlutil import tagged_tree_to_custom_tree
 
 DS9TMP = None
 
@@ -162,6 +161,30 @@ def asdf_send_array(
     self.set(cmd, timeout=timeout)
 
 
+def _asdf_search_to_ds9_path(asdf_search_path):
+    """
+    Convert an asdf.search formatted path to a path suitable for this plugin.
+    """
+    ds9_path = None
+    # This converts an asdf path (example: root["foo"][0])
+    # to a format understood by this plugin by:
+    # - stripping the leading "root["
+    # - converting the string to tokens by splitting on "[" and stripping "]"
+    # - converting each token (either a quoted string or int) using ast.literal_eval)
+    # The plugin-compatible path is then constructed using the parsed tokens
+    for token in [
+        ast.literal_eval(t.rstrip("]"))
+        for t in asdf_search_path.removeprefix("root[").split("[")
+    ]:
+        if ds9_path is None:
+            ds9_path = str(token)
+        elif isinstance(token, str):
+            ds9_path = f"{ds9_path}.{token}"
+        else:
+            ds9_path = f"{ds9_path}[{token}]"
+    return ds9_path
+
+
 def parse_filename(filename):
     """
     Separate the filename into two major parts:
@@ -239,29 +262,27 @@ def get_asdf_image(asdfpath):
         fn, alist = retval
     else:
         return None
-    # Must load in raw format to make the entire structure easily searchable
     try:
-        af = asdf.open(fn, _force_raw_types=True)
+        af = asdf.open(fn, lazy_tree=True, lazy_load=False)
     except FileNotFoundError:
         messagebox.showerror("File not Found", f"File {fn} not found")
         return None
     # Extract the referenced array
-    node = af.tree
-    im = extract_asdf_array(node, alist, af)
-    wcs = extract_gwcs(af.tree, af) if "roman" in af.tree else None
+    im = extract_asdf_array(af, alist)
+    wcs = extract_gwcs(af) if "roman" in af else None
     return im, wcs
 
 
-def extract_asdf_array(tree, apath, ctx):
+def extract_asdf_array(af, apath):
     """
     Given an asdf tree instance, follow the path to the array item,
     convert it into an array and return the array instance.
     """
-    node = tree
+    node = af
     for ptype, value in apath:
         if ptype == "a":
             try:
-                node = node.data[value] if type(node) is TaggedDict else node[value]
+                node = node[value]
             except KeyError:
                 messagebox.showerror(
                     "ASDF Path Error",
@@ -270,17 +291,17 @@ def extract_asdf_array(tree, apath, ctx):
                 return None
         elif ptype == "i":
             try:
-                node = node.data[value] if type(node) is TaggedList else node[value]
+                node = node[value]
             except KeyError:
                 messagebox.showerror(
                     "ASDF Path Error",
                     f"Specified ASDF index component '{value}' not in file",
                 )
                 return None
-    if not node._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"):  # noqa: SLF001
+    if not isinstance(node, np.ndarray):
         messagebox.showerror("Given ASDF path does not correspond to an array")
         return None
-    return tagged_tree_to_custom_tree(node, ctx)._make_array()  # noqa: SLF001
+    return node
 
 
 def fixwcs(hdr):
@@ -299,107 +320,20 @@ def fixwcs(hdr):
     return hdrstr.replace(endstr, blankcard)
 
 
-def extract_gwcs(tree, ctx):
-    # def extract_gwcs(tree, ctx):
+def extract_gwcs(af):
     """
     This currently only works for roman data
     """
-    node = tree
-    apath = (("a", "roman"), ("a", "meta"), ("a", "wcs"))
-    for ptype, value in apath:
-        if ptype == "a":
-            try:
-                node = node[value]
-            except KeyError:
-                messagebox.showerror(
-                    "ASDF Path Error",
-                    f"Specified ASDF path component '{value}' not in file",
-                )
-                return None
-    gwcs = node
-    gwcs = tagged_tree_to_custom_tree(gwcs, ctx)
+    try:
+        gwcs = af["roman"]["meta"]["wcs"]
+    except KeyError:
+        messagebox.showerror(
+            "Missing GWCS",
+            "No roman.meta.wcs found in file",
+        )
+        return None
     fitswcs = gwcs.to_fits_sip(degree=5, max_inv_pix_error=None, npoints=10)
     return fixwcs(fitswcs)
-
-
-def callsearch(pathlist, nodeitem, index, ctx, path, min_nelements):  # noqa: PLR0917
-    spath = path.copy()
-    spath.append(index)
-    sresult = search_tree(nodeitem[index], ctx, spath, min_nelements)
-    if sresult is not None:
-        if isinstance(sresult, dict):
-            pathlist.append(sresult)
-        else:
-            pathlist += sresult
-
-
-def search_tree(tree, ctx, path=None, min_nelements=1000):
-    """
-    Walk through the tree recursively to find all images and their associated paths
-    """
-    if path is None:
-        path = []
-    pathlist = []
-    if isinstance(tree, TaggedDict):
-        if tree._tag.startswith("tag:stsci.edu:asdf/core/ndarray-"):  # noqa: SLF001
-            # Convert and check for size
-            lazyim = tagged_tree_to_custom_tree(tree, ctx)
-            if len(lazyim.shape) < 2:
-                return None
-            nelements = np.prod(lazyim.shape)
-            if nelements < min_nelements:
-                return None
-            if lazyim.dtype is complex:
-                return None
-            iminfo = (lazyim.dtype, lazyim.shape)
-            return {"path": path, "iminfo": iminfo}
-        for key in tree.data:
-            callsearch(pathlist, tree.data, key, ctx, path, min_nelements)
-    elif isinstance(tree, TaggedList):
-        for i, _item in enumerate(tree.data):
-            callsearch(pathlist, tree.data, i, ctx, path, min_nelements)
-    elif isinstance(tree, dict):
-        for key in tree:
-            callsearch(pathlist, tree, key, ctx, path, min_nelements)
-    elif isinstance(tree, list):
-        for i, _item in enumerate(tree):
-            callsearch(pathlist, tree, i, ctx, path, min_nelements)
-    if pathlist:
-        return pathlist
-    return None
-
-
-def process_path_lists(pathlists):
-    """
-    Generate a simple list of text paths useful for ds9 and a corresponding
-    list of image info as single strings.
-    """
-    paths = []
-    shapes = []
-    for item in pathlists:
-        path, imshape = convert_path_list(item)
-        paths.append(path)
-        shapes.append(imshape)
-    return paths, shapes
-
-
-def convert_path_list(pathlist):
-    """
-    Generate a text path useful for ds9 and a corresponding image description
-    string.
-    """
-    plist = pathlist["path"]
-    iminfo = pathlist["iminfo"]
-    path = ""
-    for item in plist:
-        if type(item) is int:
-            path += f"[{item}]"
-        elif not path or path[-1] == "]":
-            path += item
-        else:
-            path += f".{item}"
-    imshape = str(iminfo[1])
-    return path, imshape
 
 
 class AsdfEvents:
@@ -408,10 +342,7 @@ class AsdfEvents:
         self.pid = pid
         self.imbrow = None
         self.imlist = None
-        self.impaths = None
-        self.imshapes = None
         self.headers = {}  # Holds the header display state for different files.
-        self.af = None
         self.ds9 = ds9samp.start()
         self.ds9.send_array = asdf_send_array.__get__(self.ds9, ds9samp.Connection)
         tk.Label(root, text="asdf filename").grid(row=1)
@@ -458,10 +389,11 @@ class AsdfEvents:
         else:
             return
         self.ds9.send_array(im, filepath)
-        wcsfn = str((DS9TMP / "wcs.fits").resolve())
-        with pathlib.Path.open(wcsfn, "wb") as fwcs:
-            fwcs.write(bytes(fitswcs, "utf-8"))
-        self.ds9.set(f"wcs load {wcsfn}")
+        if fitswcs:
+            wcsfn = str((DS9TMP / "wcs.fits").resolve())
+            with pathlib.Path.open(wcsfn, "wb") as fwcs:
+                fwcs.write(bytes(fitswcs, "utf-8"))
+            self.ds9.set(f"wcs load {wcsfn}")
 
     def show_filename_help(self):
         messagebox.showinfo(title="Filename/Image Path Info", message=FILEPATH_DOC)
@@ -475,30 +407,31 @@ class AsdfEvents:
 
     def browse_image(self):
         filename = self.entry.get()
+
         # Discard the image path if it exists
         filename = filename.split(":")[0]
-        with asdf.open(filename, _force_raw_types=True) as af:
-            self.af = af
-            pathlists = search_tree(af.tree, af)
-            imbrow = tk.Toplevel(self.root)
-            imbrow.wm_title("ASDF Image Browser")
-            imlist = tk.Listbox(imbrow, width=60, height=20)
-            imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
-            button_load = tk.Button(
-                imbrow, text="Load Image", command=self.load_selected_image
-            )
-            button_load.pack()
-            self.imbrow = imbrow
-            self.imlist = imlist
-            impaths, imshapes = process_path_lists(pathlists)
-            self.impaths = impaths
-            self.imshapes = imshapes
-            imdescs = [
-                "  ".join((impath, str(imshape)))
-                for impath, imshape in zip(impaths, imshapes, strict=True)
-            ]
-            for imdesc in imdescs:
-                imlist.insert(tk.END, imdesc)
+
+        imbrow = tk.Toplevel(self.root)
+        imlist = tk.Listbox(imbrow, width=60, height=20)
+        imlist.pack(side="top", fill="both", expand=True, padx=10, pady=10)
+        button_load = tk.Button(
+            imbrow, text="Load Image", command=self.load_selected_image
+        )
+        button_load.pack()
+
+        # Find all arrays
+        with asdf.open(filename) as af:
+            search_result = af.search(type_=asdf.tags.core.NDArrayType)
+            for path, arr in zip(search_result.paths, search_result.nodes, strict=True):
+                # Only include arrays with >=2 dimensions
+                if arr.ndim < 2:
+                    continue
+                ds9_path = _asdf_search_to_ds9_path(path)
+                array_description = f"{ds9_path} {arr.shape}"
+                imlist.insert(tk.END, array_description)
+
+        self.imbrow = imbrow
+        self.imlist = imlist
 
     def show_header(self):
         """
@@ -568,8 +501,7 @@ class AsdfEvents:
         header_window.destroy()
 
     def load_selected_image(self):
-        impathindex = self.imlist.curselection()[0]
-        impath = self.impaths[impathindex]
+        impath = self.imlist.get(self.imlist.curselection()[0]).split()[0]
         # Construct new file/imagepath string
         filepath = self.entry.get()
         if ":" in filepath:
