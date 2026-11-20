@@ -485,12 +485,6 @@ class AsdfEvents:
         self.root.after(1000, self.poll_for_ds9_updates)
 
 
-def remove_terminal_markup(text):
-    for i in range(4):
-        text = text.replace(f"\x1b[{i}m", "")
-    return text
-
-
 def check_for_window_raise():
     """
     Check for the ds9tmp/ds9cmd file, and if it has the raise command.
