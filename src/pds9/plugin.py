@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import ast
+import contextlib
+import io
 import os
 import os.path
 import pathlib
@@ -9,7 +11,6 @@ from tkinter import filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 
 import asdf
-import asdf._display as display
 import ds9samp
 import numpy as np
 import psutil
@@ -342,7 +343,6 @@ class AsdfEvents:
         self.pid = pid
         self.imbrow = None
         self.imlist = None
-        self.headers = {}  # Holds the header display state for different files.
         self.ds9 = ds9samp.start()
         self.ds9.send_array = asdf_send_array.__get__(self.ds9, ds9samp.Connection)
         tk.Label(root, text="asdf filename").grid(row=1)
@@ -445,60 +445,14 @@ class AsdfEvents:
         filename = afilename.split(":")[0]
         # Set default display state if first time
         header_window = tk.Toplevel(self.root)
-        if filename not in self.headers:
-            self.headers[filename] = ["omit", header_window]
-        else:
-            self.headers[filename][1] = header_window
         header_window.title(f"Header for {filename}")
         header_window.grid_rowconfigure(0, weight=1)
         header_window.grid_columnconfigure(0, weight=1)
         text_area = ScrolledText(header_window, wrap=tk.WORD, width=80, height=80)
         text_area.grid(row=0, column=0, sticky="nsew", pady=4)
-        if self.headers[filename][0] == "omit":
-            display_option_label = "expand omitted sections"
-        else:
-            display_option_label = "omit expanded sections"
-        tk.Button(
-            header_window,
-            text=display_option_label,
-            command=lambda: self.toggle_display_option(filename),
-        ).grid(row=1, column=0, sticky=tk.W, pady=4)
-        tk.Button(header_window, text="quit", command=header_window.destroy).grid(
-            row=2, column=0, sticky=tk.W, pady=4
-        )
-        with asdf.open(filename) as af:
-            tree = af.tree
-            if self.headers[filename][0] == "omit":
-                omitstr = "OMITTED for BREVITY in ds9 header display"
-                del tree["asdf_library"]
-                tree["asdf_library"] = omitstr
-                del tree["history"]
-                tree["history"] = omitstr
-                if (
-                    "roman" in tree
-                    and "meta" in tree["roman"]
-                    and "cal_logs" in tree["roman"]["meta"]
-                ):
-                    tree["roman"]["meta"]["cal_logs"] = omitstr
-            lines = display.render_tree(tree, max_rows=None, max_cols=None)
-        text = "\n".join(lines)
-        text = remove_terminal_markup(text)
-        text_area.insert(tk.END, text)
-
-    def toggle_display_option(self, filename):
-        if self.headers[filename][0] == "omit":
-            self.headers[filename][0] = "expand"
-        else:
-            self.headers[filename][0] = "omit"
-        self.headers[filename][1].destroy()
-        self.headers[filename][1] = None
-        self.filename = filename
-        self.show_header()
-
-    def header_destroy(self, filename):
-        header_window = self.headers[filename][1]
-        del self.headers[filename]
-        header_window.destroy()
+        with contextlib.redirect_stdout(io.StringIO()) as sio:
+            asdf.info(filename, max_rows=None, max_cols=None)
+        text_area.insert(tk.END, sio.getvalue())
 
     def load_selected_image(self):
         impath = self.imlist.get(self.imlist.curselection()[0]).split()[0]
@@ -529,12 +483,6 @@ class AsdfEvents:
             bring_to_front(self.root)
 
         self.root.after(1000, self.poll_for_ds9_updates)
-
-
-def remove_terminal_markup(text):
-    for i in range(4):
-        text = text.replace(f"\x1b[{i}m", "")
-    return text
 
 
 def check_for_window_raise():
