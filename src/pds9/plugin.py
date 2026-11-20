@@ -46,7 +46,7 @@ specifier, whether index or attribute.
 So supposing the file is in the directory above the
 default for ds9, then a more complex example would be:
 
-../mydata.asdf:detector1.data.timeseries[7]image
+../mydata.asdf:detector1.data.timeseries[7].image
 
 Note the ':' separator between the file path and the
 ASDF path.
@@ -98,6 +98,8 @@ def create_ds9_tmpfile_name(asdf_full_path):
     # Replace square brackets with curly brackets since they will confuse ds9
     fn = fn.replace("[", "(")
     fn = fn.replace("]", ")")
+    # Remove blanks in filename
+    fn = fn.replace(" ","")
     return fn  # noqa: RET504
 
 
